@@ -1,0 +1,11 @@
+[submodule "external/glfw3.3"]
+	path = external/glfw3.3
+	url = https://github.com/glfw/glfw.git
+	branch = 3.3-stable
+[submodule "external/glm"]
+	path = external/glm
+	url = https://github.com/g-truc/glm.git
+	branch = stable
+[submodule "external/glew-cmake"]
+	path = external/glew-cmake
+	url = https://github.com/Perlmint/glew-cmake.git
