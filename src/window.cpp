@@ -1,4 +1,5 @@
 #include "window.h"
+#include "input.h"
 
 GWindow::GWindow()
 {
@@ -16,8 +17,9 @@ void GWindow::create()
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 4);
 	glfwWindowHint(GLFW_RESIZABLE, 1);
-	window = glfwCreateWindow(640, 480, "OpenGL Cubes", NULL, NULL);
+	window = glfwCreateWindow(1280, 720, "OpenGL Cubes", NULL, NULL);
 	glfwMakeContextCurrent(window);
+	glfwSetKeyCallback(window, GInput::glfwKeyCallback);
 }
 
 void GWindow::destroy()

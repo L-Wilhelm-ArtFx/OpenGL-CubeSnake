@@ -6,6 +6,11 @@
 #include <GLFW/glfw3.h>
 
 #include "window.h"
+#include "shader.h"
+#include "game.h"
+#include "mesh.h"
+#include "glm_includes.h"
+#include "input.h"
 
 typedef std::chrono::nanoseconds delta_dur_t;
 
@@ -60,7 +65,7 @@ int main(int argc, char const *argv[])
 	int glfwErr = glfwInit();
 	if (!glfwErr)
 	{
-		std::cout << "Failed" << std::endl;
+		std::cerr << "Failed" << std::endl;
 		return 1;
 	}
 	std::cout << "Done" << std::endl;
@@ -72,11 +77,13 @@ int main(int argc, char const *argv[])
 	GLenum glewStatus = glewInit();
 	if (glewStatus != GLEW_OK)
 	{
-		std::cout << "Failed" << std::endl;
+		std::cerr << "Failed" << std::endl;
 		fprintf(stderr, "Glew Error: %s\n", glewGetErrorString(glewStatus));
 		return 1;
 	}
 	std::cout << "Done" << std::endl;
+
+	// Loop Timing
 
 	std::chrono::high_resolution_clock clock;
 
@@ -89,86 +96,19 @@ int main(int argc, char const *argv[])
 	const delta_dur_t maxDelta(1000000000LL);
 	const delta_dur_t minDelta(1000000000LL / 240LL);
 
-	float vertices[] = {
-		-2.0f, -0.5f, 0.0f,
-		0.5f, -0.5f, 0.0f,
-		0.0f, 0.5f, 0.0f};
+	// Game Loop
+	printf("Starting Game Loop\n");
 
-	GLuint vao;
-	glGenVertexArrays(1, &vao);
-	glBindVertexArray(vao);
+	MeshInstance inst;
+	GameObj camera;
 
-	GLuint vbo;
-	glGenBuffers(1, &vbo);
+	camera.pos[2] = -3.0f;
 
-	glBindBuffer(GL_ARRAY_BUFFER, vbo);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+	GameScene scene;
 
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *)0);
-	glEnableVertexAttribArray(0);
+	scene.start();
 
-	const char *vertexShaderSource = "#version 440 core\n"
-									 "layout (location = 0) in vec3 aPos;\n"
-									 "void main()\n"
-									 "{\n"
-									 "   vec3 a[3] = vec3[](vec3(-1.0f,0.0f,0.5f), vec3(0.5f,0.5f,0.0f), vec3(0.0f,1.0f,-0.5f));"
-									 "   vec3 pos = a[gl_VertexID] + aPos;"
-									 "   gl_Position = vec4(pos.x, pos.y, pos.z, 1.0);\n"
-									 "}\0";
-
-	GLuint vShad;
-	vShad = glCreateShader(GL_VERTEX_SHADER);
-	glShaderSource(vShad, 1, &vertexShaderSource, NULL);
-	glCompileShader(vShad);
-	GLint vSuccess;
-	glGetShaderiv(vShad, GL_COMPILE_STATUS, &vSuccess);
-	if (!vSuccess)
-	{
-		char infoLog[1024];
-		glGetShaderInfoLog(vShad, 1024, NULL, infoLog);
-		std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n"
-				  << infoLog << std::endl;
-	}
-
-	const char *fragmentShaderSource = "#version 440 core\n"
-									   "out vec4 FragColor;\n"
-									   "void main()\n"
-									   "{\n"
-									   "	FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
-									   "}\0";
-	GLuint fShad;
-	fShad = glCreateShader(GL_FRAGMENT_SHADER);
-	glShaderSource(fShad, 1, &fragmentShaderSource, NULL);
-	glCompileShader(fShad);
-	GLint fSuccess;
-	glGetShaderiv(fShad, GL_COMPILE_STATUS, &fSuccess);
-	if (!fSuccess)
-	{
-		char infoLog[512];
-		glGetShaderInfoLog(fShad, 512, NULL, infoLog);
-		std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n"
-				  << infoLog << std::endl;
-	}
-
-	GLuint prog;
-	prog = glCreateProgram();
-	glAttachShader(prog, vShad);
-	glAttachShader(prog, fShad);
-	glLinkProgram(prog);
-	GLint pSuccess;
-	glGetProgramiv(prog, GL_COMPILE_STATUS, &pSuccess);
-	if (!pSuccess)
-	{
-		char infoLog[512];
-		glGetProgramInfoLog(prog, 512, NULL, infoLog);
-		std::cout << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n"
-				  << infoLog << std::endl;
-	}
-
-	glUseProgram(prog);
-
-	glDeleteShader(vShad);
-	glDeleteShader(fShad);
+	glEnable(GL_DEPTH_TEST);
 
 	while (!win.shoudClose())
 	{
@@ -180,7 +120,8 @@ int main(int argc, char const *argv[])
 		{
 			int width, height;
 			win.getFrameSize(&width, &height);
-
+			scene.width = width;
+			scene.height = height;
 			glViewport(0, 0, width, height);
 			timePt = timePtNow;
 			delta += stepDelta;
@@ -192,15 +133,8 @@ int main(int argc, char const *argv[])
 			for (unsigned int i = 0; i < 10 && delta.count() > 0; i++)
 			{
 				delta -= stepDuration;
-				// === UPDATE ===
-				glClearColor(((float)sin(std::chrono::duration<double>(totalTime).count()) + 1.0f) * 0.5f, 0.6f, 0.0f, 1.0f);
-				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-				glUseProgram(prog);
-
-				glBindVertexArray(vao);
-
-				glDrawArrays(GL_TRIANGLES, 0, 3);
+				scene.update();
 
 				checkGLErr();
 
@@ -211,9 +145,12 @@ int main(int argc, char const *argv[])
 		}
 		else
 		{
+			
 		}
 	}
 
+	// Clean up
+	scene.stop();
 	win.destroy();
 
 	glfwTerminate();

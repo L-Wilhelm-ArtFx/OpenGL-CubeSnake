@@ -15,6 +15,10 @@ set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 add_subdirectory(external/glfw3.3)
 
+set(GLM_TEST_ENABLE OFF)
+add_subdirectory(external/glm)
+
+
 # add_subdirectory( src )
 
 file( GLOB SOURCEFILES src/*.cpp )
@@ -22,7 +26,7 @@ file( GLOB SOURCEFILES src/*.cpp )
 add_executable(OpenGLCubes ${SOURCEFILES})
 
 # target_link_libraries(OpenGLTraining game engine maths input ${GLEW_LIBRARIES} ${SDL2_LIBRARIES} OpenGL::GL OpenGL::GLU)
-target_link_libraries(OpenGLCubes ${OPENGL_LIBRARIES} libglew_static glfw ${CMAKE_DL_LIBS})
+target_link_libraries(OpenGLCubes ${OPENGL_LIBRARIES} glm libglew_static glfw ${CMAKE_DL_LIBS})
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
